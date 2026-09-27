@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>날씨 선호도 이상형 월드컵</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Pretendard', sans-serif;
+    }
+
+    body {
+      background-color: #f4f7f6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .round-info {
+      font-size: 1.2rem;
+      color: #666;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+
+    .card-container {
+      display: flex;
+      gap: 20px;
+      max-width: 800px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .card {
+      flex: 1;
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #222;
+      margin-bottom: 10px;
+    }
+
+    .desc {
+      font-size: 0.95rem;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    .winner-box {
+      text-align: center;
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .restart-btn {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 1rem;
+      background-color: #4A90E2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .restart-btn:hover {
+      background-color: #357ABD;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>☀️ 날씨 선호도 월드컵 🌧️</h1>
+  <div id="round-text" class="round-info">8강 (1/4)</div>
+
+  <!-- 게임 진행 화면 -->
+  <div id="game-container" class="card-container">
+    <div class="card" id="card-left" onclick="selectWeather(0)">
+      <div class="icon" id="icon-left">☀️</div>
+      <div class="title" id="title-left">맑은 날</div>
+      <div class="desc" id="desc-left">화창하고 기분이 좋아지는 따뜻한 날씨</div>
+    </div>
+
+    <div class="card" id="card-right" onclick="selectWeather(1)">
+      <div class="icon" id="icon-right">🌧️</div>
+      <div class="title" id="title-right">비 오는 날</div>
+      <div class="desc" id="desc-right">빗소리를 들으며 운치 있게 차 한 잔 마시기 좋은 날씨</div>
+    </div>
+  </div>
+
+  <!-- 결과 화면 -->
+  <div id="result-container" class="winner-box hidden">
+    <h2>🏆 내가 가장 좋아하는 날씨 🏆</h2>
+    <div class="icon" id="winner-icon" style="margin-top: 20px;">☀️</div>
+    <div class="title" id="winner-title">맑은 날</div>
+    <div class="desc" id="winner-desc">설명 내용</div>
+    <button class="restart-btn" onclick="initGame()">다시 하기</button>
+  </div>
+
+  <script>
+    // 날씨 데이터 목록 (8종류)
+    const initialWeathers = [
+      { name: "맑고 화창한 날", icon: "☀️", desc: "햇살이 눈부시고 야외활동하기 최고인 날" },
+      { name: "비 오는 날", icon: "🌧️", desc: "차분한 빗소리와 촉촉한 감성이 가득한 날" },
+      { name: "눈 내리는 날", icon: "❄️", desc: "하얗게 쌓인 눈을 보며 낭만을 즐기는 날" },
+      { name: "선선한 바람 불는 날", icon: "🍃", desc: "가벼운 산책을 즐기기 딱 좋은 산뜻한 날" },
+      { name: "구름 많고 벼락 치는 날", icon: "⚡", desc: "웅장한 자연 현상과 스릴이 느껴지는 날" },
+      { name: "안개 끼고 신비로운 날", icon: "🌫️", desc: "몽환적이고 정적인 분위기가 감도는 날" },
+      { name: "소나기 후 무지개 뜨는 날", icon: "🌈", desc: "시원하게 쏟아진 후 기분 좋은 반전이 있는 날" },
+      { name: "따스한 햇살과 뭉게구름", icon: "⛅", desc: "너무 덥지 않고 가볍게 그늘이 지는 완벽한 날" }
+    ];
+
+    let currentList = [];
+    let nextRoundList = [];
+    let matchIndex = 0;
+
+    // 게임 초기화
+    function initGame() {
+      // 배열 셔플
+      currentList = [...initialWeathers].sort(() => Math.random() - 0.5);
+      nextRoundList = [];
+      matchIndex = 0;
+
+      document.getElementById('game-container').classList.remove('hidden');
+      document.getElementById('result-container').classList.add('hidden');
+      
+      updateMatch();
+    }
+
+    // 대진 업데이트
+    function updateMatch() {
+      const roundNum = currentList.length;
+      const currentMatch = (matchIndex / 2) + 1;
+      const totalMatches = roundNum / 2;
+
+      document.getElementById('round-text').innerText = `${roundNum}강 (${currentMatch}/${totalMatches})`;
+
+      const left = currentList[matchIndex];
+      const right = currentList[matchIndex + 1];
+
+      document.getElementById('icon-left').innerText = left.icon;
+      document.getElementById('title-left').innerText = left.name;
+      document.getElementById('desc-left').innerText = left.desc;
+
+      document.getElementById('icon-right').innerText = right.icon;
+      document.getElementById('title-right').innerText = right.name;
+      document.getElementById('desc-right').innerText = right.desc;
+    }
+
+    // 선택 처리
+    function selectWeather(selectedIndex) {
+      const winner = currentList[matchIndex + selectedIndex];
+      nextRoundList.push(winner);
+      matchIndex += 2;
+
+      // 현재 라운드가 끝난 경우
+      if (matchIndex >= currentList.length) {
+        if (nextRoundList.length === 1) {
+          // 최종 우승자
+          showResult(nextRoundList[0]);
+        } else {
+          // 다음 라운드로 진행
+          currentList = [...nextRoundList];
+          nextRoundList = [];
+          matchIndex = 0;
+          updateMatch();
+        }
+      } else {
+        updateMatch();
+      }
+    }
+
+    // 결과 출력
+    function showResult(winner) {
+      document.getElementById('game-container').classList.add('hidden');
+      document.getElementById('round-text').innerText = "최종 선택 완료!";
+
+      document.getElementById('winner-icon').innerText = winner.icon;
+      document.getElementById('winner-title').innerText = winner.name;
+      document.getElementById('winner-desc').innerText = winner.desc;
+
+      document.getElementById('result-container').classList.remove('hidden');
+    }
+
+    // 게임 시작
+    initGame();
+  </script>
+</body>
+</html>
